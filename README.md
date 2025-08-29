@@ -18,7 +18,7 @@ This repo refactors the official Moment-DETR into a modular, easy-to-use pipelin
 🛠️ Plug-and-play configs for quick dataset integration
 
 📌 Overview & Pipeline
-<img width="528" height="1000" alt="ChatGPT Image Aug 29, 2025, 11_25_38 PM" src="https://github.com/user-attachments/assets/3ea1e7a2-8956-4f37-937c-e4a649fad517" />
+<img width="528" height="700" alt="ChatGPT Image Aug 29, 2025, 11_25_38 PM" src="https://github.com/user-attachments/assets/3ea1e7a2-8956-4f37-937c-e4a649fad517" />
 
 The workflow consists of four stages, each handled by a dedicated script:
 
