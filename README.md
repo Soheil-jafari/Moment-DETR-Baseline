@@ -131,15 +131,6 @@ If you use this repo, please cite the paper.
   year={2021}
 }
 
-📌 Repository Structure
-moment_detr_baseline/
-├── run_preprocessing.py       # Step 1: Convert CSV → JSONL
-├── run_feature_extraction.py  # Step 2: Extract features
-├── run_training.py            # Step 3: Train Moment-DETR
-├── run_evaluation.py          # Step 4: Evaluate checkpoint
-├── requirements.txt
-├── project_config.py          # Path + dataset configuration
-└── README.md
 
 ✨ To-Do / Extensions
 
