@@ -1,60 +1,152 @@
-# Moment-DETR-Baseline
-Moment-DETR Baseline Experiment for Paper
-This folder contains the official implementation of Moment-DETR, adapted to run on your Cholec80 dataset for the temporal grounding baseline.
+🎯 Moment-DETR for Custom Datasets
 
-This is a multi-step process. You must run the scripts in the specified order.
+A clean and streamlined implementation of Moment-DETR for language-based temporal video grounding on custom datasets.
+The task: given a natural language query, the model predicts the [start, end] timestamps in a video where the described event occurs.
 
-Workflow Overview
-run_preprocessing.py: Converts your cholec80_*.csv files into the JSONL format required by the training script.
+This repo refactors the official Moment-DETR into a modular, easy-to-use pipeline, making it simple to adapt for new datasets.
 
-run_feature_extraction.py: Processes all video frames through a ResNet50 model to generate feature vectors (.npz files), which are the actual input to Moment-DETR. This is computationally intensive and will take time.
+🚀 Key Features
 
-run_training.py: Trains the Moment-DETR model using the preprocessed annotations and extracted features.
+🔄 End-to-end pipeline (Preprocess → Feature Extraction → Training → Evaluation)
 
-run_evaluation.py: Runs the trained model on the test set to predict [start, end] timestamps and calculates the mAP@tIoU and Recall@k metrics for your paper.
+🖼️ ResNet-50 feature extractor for efficient training
 
-Step 1: Setup the Environment (Do This Only Once)
-Create a new conda environment for this baseline. It has different dependencies than the X-CLIP one.
+⚡ Multi-GPU support with torch.distributed
 
-# Navigate to this directory
+📊 Standard metrics: mAP@tIoU, Recall@k
+
+🛠️ Plug-and-play configs for quick dataset integration
+
+📌 Overview & Pipeline
+
+The workflow consists of four stages, each handled by a dedicated script:
+
+graph TD;
+    A[📑 Preprocessing <br> run_preprocessing.py] --> B[🖼️ Feature Extraction <br> run_feature_extraction.py];
+    B --> C[🧠 Training <br> run_training.py];
+    C --> D[📊 Evaluation <br> run_evaluation.py];
+
+
+👉 This modular design means you can preprocess, extract features, train, and evaluate independently.
+
+⚙️ Setup & Installation
+
+We recommend a dedicated Conda environment.
+
+# 1. Clone the repository
+git clone https://github.com/yourname/moment-detr-custom.git
 cd moment_detr_baseline
 
-# Create and activate the conda environment
+# 2. Create and activate environment
 conda create -n detr python=3.9 -y
 conda activate detr
 
-# Install PyTorch with CUDA support (adjust for your server)
-pip install torch torchvision --extra-index-url [https://download.pytorch.org/whl/cu118](https://download.pytorch.org/whl/cu118)
+# 3. Install PyTorch (adjust CUDA version as needed)
+pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu118
 
-# Install the rest of the dependencies
+# 4. Install dependencies
 pip install -r requirements.txt
 
-Step 2: Run the Pipeline Scripts
-Execute the following scripts in sequence.
+🛠️ Usage: Step-by-Step
+🔧 Step 0: Data Configuration
 
-Script 1: Preprocess Annotations
-This will create train.jsonl, val.jsonl, and test.jsonl files in the preprocessed_data directory.
+Define dataset paths in your config file.
+
+Update run_preprocessing.py and run_feature_extraction.py with either:
+
+sys.path.append(...) → config file, OR
+
+Replace with direct paths (proj_config.TRAIN_TRIPLETS_CSV_PATH, etc.)
+
+👉 Annotation CSV format:
+
+video_id	text	start_frame	end_frame
+📑 Step 1: Preprocess Annotations
+
+Convert CSV annotations → JSONL format.
 
 python run_preprocessing.py
 
-Script 2: Extract Visual Features
-This is the most time-consuming step. It will process all frames in your extracted_frames directory and save a .npz feature file for each video. The script will automatically skip videos that have already been processed, so you can stop and resume it.
+
+✅ Outputs: train.jsonl, val.jsonl, test.jsonl → preprocessed_data/
+
+🖼️ Step 2: Extract Visual Features
+
+Extract features using ResNet-50.
 
 python run_feature_extraction.py
 
-Script 3: Train the Model
-This will start the main training process and save checkpoints in the checkpoints directory.
 
-# This command will train the model.
-# The number of GPUs is detected automatically.
+Resumable (skips completed videos)
+
+Saves features → extracted_features_resnet50/
+
+🧠 Step 3: Train the Model
+
+Train with multi-GPU support.
+
 python -m torch.distributed.launch --nproc_per_node=2 --master_port 29501 run_training.py
 
-Note: Adjust nproc_per_node to the number of GPUs you want to use (e.g., 2, 4, 8).
 
-Script 4: Evaluate the Model
-After training, use this script to generate the final results for your paper. Make sure to point it to the best checkpoint saved during training.
+Checkpoints saved → checkpoints/
 
-# Replace '.../best_checkpoint.ckpt' with the actual path to your saved model
-python run_evaluation.py --resume /path/to/your/checkpoints/moment_detr_cholec80_.../best_checkpoint.ckpt
+Customize GPUs via nproc_per_node
 
-The final metrics will be printed to the console and saved in a text file.
+📊 Step 4: Evaluate the Model
+
+Evaluate trained checkpoint.
+
+python run_evaluation.py --resume /path/to/checkpoints/run_name/best_checkpoint.ckpt
+
+
+Results printed + saved in logs
+
+Metrics: mAP@tIoU, Recall@k
+
+🖼️ Example Results
+
+Here you can showcase results with GIFs or sample visualizations. For example:
+
+Pipeline GIF (data → features → training → predictions)
+
+Sample grounding outputs: query + predicted [start, end] overlayed on video timeline
+
+![Pipeline Overview](docs/pipeline.gif)  
+![Sample Result](docs/result_example.png)  
+
+📚 Citation
+
+This code adapts from the original Moment-DETR:
+
+End-to-End Video Instance Segmentation with Transformers
+Yuqing Wang, Zhaoliang Xu, Xinlong Wang, Chun-Guang Li, Yong-Qiang Yao, Yue-Meng Li, Gaofeng Meng
+CVPR 2021
+
+If you use this repo, please cite the paper.
+
+@inproceedings{momentdetr2021,
+  title={End-to-End Video Instance Segmentation with Transformers},
+  author={Wang, Yuqing and Xu, Zhaoliang and Wang, Xinlong and Li, Chun-Guang and Yao, Yong-Qiang and Li, Yue-Meng and Meng, Gaofeng},
+  booktitle={CVPR},
+  year={2021}
+}
+
+📌 Repository Structure
+moment_detr_baseline/
+├── run_preprocessing.py       # Step 1: Convert CSV → JSONL
+├── run_feature_extraction.py  # Step 2: Extract features
+├── run_training.py            # Step 3: Train Moment-DETR
+├── run_evaluation.py          # Step 4: Evaluate checkpoint
+├── requirements.txt
+├── project_config.py          # Path + dataset configuration
+└── README.md
+
+✨ To-Do / Extensions
+
+ Add support for more backbones (e.g., Swin Transformer)
+
+ Provide pretrained weights on benchmark datasets
+
+ Add demo notebooks for quick inference
+
+🔥 With this repo, you can train Moment-DETR on any dataset with just a CSV file of annotations and raw videos.
