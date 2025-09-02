@@ -1,16 +1,18 @@
 import torch, numpy as np
 from .utils import RunningMeter, get_iou
+from tqdm import tqdm
 
 def train_one_epoch(model, loader, optimizer, device, epoch, max_norm, logger, rank):
     model.train(); loss_meter = RunningMeter()
-    for i, data in enumerate(loader):
+    progress_bar = tqdm(loader, desc=f"Epoch {epoch}", leave=False, disable=(rank != 0))
+    for i, data in enumerate(progress_bar):
         video_feats, video_mask, query, query_mask = data['video_feats'].to(device), data['video_mask'].to(device), data['query'].to(device), data['query_mask'].to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in data['targets']]
         loss = sum(model(video_feats, video_mask, query, query_mask, targets)['loss_dict'].values())
         optimizer.zero_grad(); loss.backward()
         if max_norm > 0: torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step(); loss_meter.update(loss.item())
-        if rank == 0 and (i + 1) % 50 == 0: logger.info(f"Epoch {epoch} | Step {i+1}/{len(loader)} | Loss: {loss_meter.avg:.4f}")
+        progress_bar.set_description(f"Epoch {epoch} | Loss: {loss_meter.avg:.4f}")
 
 @torch.no_grad()
 def evaluate(model, loader, device):

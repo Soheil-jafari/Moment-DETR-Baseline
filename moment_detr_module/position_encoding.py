@@ -15,5 +15,5 @@ class PositionEmbeddingSine(nn.Module):
         return torch.stack((pos[:, :, 0::2].sin(), pos[:, :, 1::2].cos()), dim=3).flatten(2)
 
 def build_position_encoding(cfg):
-    return PositionEmbeddingSine(cfg.hidden_dim // 2, normalize=True)
+    return PositionEmbeddingSine(cfg.hidden_dim, normalize=True)
 
