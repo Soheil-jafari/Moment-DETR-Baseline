@@ -28,18 +28,15 @@ def main(args):
     train_sampler, val_sampler = (DistributedSampler(train_dataset) if args.dist else None), (DistributedSampler(val_dataset, shuffle=False) if args.dist else None)
     train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=(train_sampler is None), num_workers=args.num_workers, pin_memory=True, collate_fn=collate_fn, sampler=train_sampler)
     val_loader = DataLoader(val_dataset, batch_size=cfg.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True, collate_fn=collate_fn, sampler=val_sampler)
-    print("\n" + "=" * 40)
-    print("!!! RUNNING OVERFITTING SANITY CHECK !!!")
-    print("=" * 40 + "\n")
-
-    # Get just one batch from the training loader
-    single_batch = next(iter(train_loader))
-
-    # Overwrite the loaders to always return this single batch
-    train_loader = [single_batch]
-    val_loader = [single_batch]
+    one_batch_sanity = True  # set to False for real training
+    if one_batch_sanity and (not args.dist):
+        print("\n" + "=" * 40)
+        print("!!! RUNNING OVERFITTING SANITY CHECK (single GPU) !!!")
+        print("=" * 40 + "\n")
+        single_batch = next(iter(train_loader))
+        train_loader = [single_batch]
+        val_loader = [single_batch]
     # --- END OF SANITY CHECK CODE ---
-
     if args.local_rank == 0: logger.info("Start training")
     if args.local_rank == 0: logger.info("Start training")
     best_metric = -1.0
