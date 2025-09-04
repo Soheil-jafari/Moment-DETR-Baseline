@@ -48,13 +48,33 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout1, self.dropout2, self.dropout3 = nn.Dropout(dropout), nn.Dropout(dropout), nn.Dropout(dropout)
         self.activation, self.normalize_before = F.relu, normalize_before
     def with_pos(self, t, p): return t if p is None else t + p
-    def forward(self, src, src_mask=None, src_key_padding_mask=None, pos=None, text_memory=None, text_memory_key_padding_mask=None):
-        src2 = self.self_attn(self.with_pos(src, pos), self.with_pos(src, pos), src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
-        src = self.norm1(src + self.dropout1(src2))
-        src2 = self.cross_attn(self.with_pos(src, pos), text_memory, text_memory, key_padding_mask=text_memory_key_padding_mask)[0]
-        src = self.norm3(src + self.dropout(src2))
-        src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-        return self.norm2(src + self.dropout2(src2))
+
+    def forward(self, src, src_mask=None, src_key_padding_mask=None, pos=None, text_memory=None,
+                text_memory_key_padding_mask=None):
+        if self.normalize_before:
+            src_norm = self.norm1(src)
+            q = k = self.with_pos(src_norm, pos)
+            src2 = self.self_attn(q, k, value=src_norm, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
+            src = src + self.dropout1(src2)
+
+            src_norm = self.norm3(src)  # norm for cross-attention
+            src2 = self.cross_attn(self.with_pos(src_norm, pos), text_memory, text_memory,
+                                   key_padding_mask=text_memory_key_padding_mask)[0]
+            src = src + self.dropout3(src2)
+
+            src_norm = self.norm2(src)
+            src2 = self.linear2(self.dropout(self.activation(self.linear1(src_norm))))
+            src = src + self.dropout2(src2)
+            return src
+        else:  # The original implementation was post-normalization
+            src2 = self.self_attn(self.with_pos(src, pos), self.with_pos(src, pos), src, attn_mask=src_mask,
+                                  key_padding_mask=src_key_padding_mask)[0]
+            src = self.norm1(src + self.dropout1(src2))
+            src2 = self.cross_attn(self.with_pos(src, pos), text_memory, text_memory,
+                                   key_padding_mask=text_memory_key_padding_mask)[0]
+            src = self.norm3(src + self.dropout(src2))
+            src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
+            return self.norm2(src + self.dropout2(src2))
 
 class TransformerDecoderLayer(nn.Module):
     def __init__(self, d_model, nhead, dim_feedforward=1024, dropout=0.1, activation="relu", normalize_before=True):
@@ -65,11 +85,31 @@ class TransformerDecoderLayer(nn.Module):
         self.dropout1, self.dropout2, self.dropout3 = nn.Dropout(dropout), nn.Dropout(dropout), nn.Dropout(dropout)
         self.activation, self.normalize_before = F.relu, normalize_before
     def with_pos(self, t, p): return t if p is None else t + p
-    def forward(self, tgt, memory, tgt_mask=None, memory_mask=None, tgt_key_padding_mask=None, memory_key_padding_mask=None, pos=None, query_pos=None):
-        tgt2 = self.self_attn(self.with_pos(tgt, query_pos), self.with_pos(tgt, query_pos), tgt, attn_mask=tgt_mask, key_padding_mask=tgt_key_padding_mask)[0]
-        tgt = self.norm1(tgt + self.dropout1(tgt2))
-        tgt2 = self.multihead_attn(self.with_pos(tgt, query_pos), self.with_pos(memory, pos), memory, attn_mask=memory_mask, key_padding_mask=memory_key_padding_mask)[0]
-        tgt = self.norm2(tgt + self.dropout2(tgt2))
-        tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
-        return self.norm3(tgt + self.dropout3(tgt2))
+
+    def forward(self, tgt, memory, tgt_mask=None, memory_mask=None, tgt_key_padding_mask=None,
+                memory_key_padding_mask=None, pos=None, query_pos=None):
+        if self.normalize_before:
+            tgt_norm = self.norm1(tgt)
+            q = k = self.with_pos(tgt_norm, query_pos)
+            tgt2 = self.self_attn(q, k, value=tgt_norm, attn_mask=tgt_mask, key_padding_mask=tgt_key_padding_mask)[0]
+            tgt = tgt + self.dropout1(tgt2)
+
+            tgt_norm = self.norm2(tgt)
+            tgt2 = self.multihead_attn(self.with_pos(tgt_norm, query_pos), self.with_pos(memory, pos), memory,
+                                       attn_mask=memory_mask, key_padding_mask=memory_key_padding_mask)[0]
+            tgt = tgt + self.dropout2(tgt2)
+
+            tgt_norm = self.norm3(tgt)
+            tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt_norm))))
+            tgt = tgt + self.dropout3(tgt2)
+            return tgt
+        else:  # Original implementation
+            tgt2 = self.self_attn(self.with_pos(tgt, query_pos), self.with_pos(tgt, query_pos), tgt, attn_mask=tgt_mask,
+                                  key_padding_mask=tgt_key_padding_mask)[0]
+            tgt = self.norm1(tgt + self.dropout1(tgt2))
+            tgt2 = self.multihead_attn(self.with_pos(tgt, query_pos), self.with_pos(memory, pos), memory,
+                                       attn_mask=memory_mask, key_padding_mask=memory_key_padding_mask)[0]
+            tgt = self.norm2(tgt + self.dropout2(tgt2))
+            tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
+            return self.norm3(tgt + self.dropout3(tgt2))
 

@@ -21,8 +21,19 @@ class SetCriterion(nn.Module):
         batch_idx = torch.cat([torch.full_like(src, i) for i, (src, _) in enumerate(indices)])
         src_idx = torch.cat([src for (src, _) in indices])
         return batch_idx, src_idx
+
     def forward(self, outputs, targets):
-        indices = self.matcher(outputs, targets); losses = {}
-        for loss_type in ['spans', 'labels']: losses.update(getattr(self, f'loss_{loss_type}')(outputs, targets, indices))
+        indices = self.matcher(outputs, targets)
+        losses = {}
+        for loss_type in ['spans', 'labels']:
+            losses.update(getattr(self, f'loss_{loss_type}')(outputs, targets, indices))
+
+        # --- ADD THIS FINAL BLOCK ---
+        # Apply the weights from the config to each loss component
+        for loss_key, weight in self.weight_dict.items():
+            if loss_key in losses:
+                losses[loss_key] *= weight
+        # --- END OF BLOCK ---
+
         return losses
 

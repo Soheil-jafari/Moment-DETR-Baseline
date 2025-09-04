@@ -21,14 +21,12 @@ class MomentDETRDataset(Dataset):
         ann = self.annotations[idx]
         feature_path = os.path.join(self.cfg.feature_path, f"{ann['video']}.npz")
         features = np.load(feature_path)['features'].astype(np.float32)
+
         if features.shape[0] > self.cfg.max_v_len:
             indices = np.linspace(0, features.shape[0] - 1, self.cfg.max_v_len).astype(int)
             features = features[indices]
 
-            # actual number of tokens after downsampling
-        num_tokens = features.shape[0]
-
-        # tokenize query
+        # Tokenize query (this part is unchanged and correct)
         word_ids = self.tokenizer(
             ann['query'],
             add_special_tokens=True,
@@ -38,43 +36,22 @@ class MomentDETRDataset(Dataset):
             truncation=True
         )
 
-        # normalize timestamps
-        timestamps = torch.tensor(ann['timestamps'], dtype=torch.float32)  # [[start,end]] in seconds
-        spans_start_end = timestamps / float(ann['duration'])  # -> [0,1], shape [1,2]
+        # --- START OF CORRECTED GROUND TRUTH LOGIC ---
 
-        # ---- convert to center/width
+        # Get timestamps [[start,end]] in seconds
+        timestamps = torch.tensor(ann['timestamps'], dtype=torch.float32)
+
+        # Normalize timestamps to the range [0, 1] based on the video's total duration
+        spans_start_end = timestamps / float(ann['duration'])
+
+        # Directly convert the normalized [start, end] to [center, width]
         spans_center = (spans_start_end[:, 0] + spans_start_end[:, 1]) / 2
         spans_width = (spans_start_end[:, 1] - spans_start_end[:, 0])
 
-        # ---- SNAP TO TOKEN GRID (CRITICAL)
-        # each token is a bin of width 1/num_tokens. Snap x1 down, x2 up, so the GT
-        # is representable by the feature sequence your model sees.
-        grid = 1.0 / float(max(1, num_tokens))
-        x1 = torch.clamp(torch.floor((spans_center - spans_width / 2) / grid) * grid, 0.0, 1.0)
-        x2 = torch.clamp(torch.ceil((spans_center + spans_width / 2) / grid) * grid, 0.0, 1.0)
-
-        # ---- ensure at least ONE token wide (use TWO tokens if your GT is very tiny)
-        min_tokens = 2  # try 2 if you still get zeros
-        min_w = min_tokens * grid
-
-        cur_w = (x2 - x1)
-        need = (min_w - cur_w).clamp(min=0.0)
-
-        # expand symmetrically
-        x1 = torch.clamp(x1 - need / 2, 0.0, 1.0)
-        x2 = torch.clamp(x2 + need / 2, 0.0, 1.0)
-
-        # after clamping, width might still be < min_w (e.g., when x1 hit 0)
-        cur_w = (x2 - x1)
-        deficit = (min_w - cur_w).clamp(min=0.0)
-        x2 = torch.clamp(x2 + deficit, 0.0, 1.0)  # re-extend to the right
-
-        # recompute center/width after snapping
-        spans_center = (x1 + x2) / 2
-        spans_width = (x2 - x1)
-
-        # final [cx, w]
+        # Final [center, width] tensor
         spans = torch.stack([spans_center, spans_width], dim=-1)
+
+        # --- END OF CORRECTED GROUND TRUTH LOGIC ---
 
         return {'video_feats': torch.from_numpy(features), 'query': word_ids['input_ids'].squeeze(0),
                 'query_mask': word_ids['attention_mask'].squeeze(0), 'spans': spans, 'duration': ann['duration'],
