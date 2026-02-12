@@ -71,13 +71,17 @@ pip install torch torchvision --extra-index-url https://download.pytorch.org/whl
 # Install dependencies
 pip install -r requirements.txt
 
+```
 📂 Dataset Format
 
 Annotations should be provided as a CSV file:
+```bash
 video_id,text,start_frame,end_frame
+```
 Example:
+```bash
 video_001,"person opens door",120,240
-
+```
 🛠️ Usage: Step-by-Step
 Step 0: Configure Paths
 
@@ -85,56 +89,54 @@ Define dataset paths inside your config (or directly inside the scripts).
 Make sure run_preprocessing.py and run_feature_extraction.py point to the correct locations of your CSV files, videos, and output folders.
 
 Step 1: Preprocess Annotations
-
+```bash
 Convert CSV annotations → JSONL format.
-
 python run_preprocessing.py
-
+```
 
 ✅ Outputs:
-
+```bash
 preprocessed_data/
   ├── train.jsonl
   ├── val.jsonl
   └── test.jsonl
-
+```
 Step 2: Extract Visual Features
 
 Extract visual features using ResNet-50.
-
+```bash
 python run_feature_extraction.py
-
+```
 
 Resumable (skips completed videos)
 
 Saves features to:
-
+```text
 extracted_features_resnet50/
-
+```
 Step 3: Train the Model (Multi-GPU)
 
 Train using distributed multi-GPU support:
-
+```bash
 python -m torch.distributed.launch \
   --nproc_per_node=2 \
   --master_port 29501 \
   run_training.py
-
+```
 
 Checkpoints saved to:
-
+```text
 checkpoints/
-
-
+```
 Adjust --nproc_per_node based on the number of GPUs available.
 
 Step 4: Evaluate the Model
 
 Evaluate a trained checkpoint:
-
+```bash
 python run_evaluation.py \
   --resume /path/to/checkpoints/run_name/best_checkpoint.ckpt
-
+```
 
 Results are printed and logged
 
@@ -145,3 +147,17 @@ Metrics include mAP@tIoU and Recall@k
 mAP@tIoU — Mean Average Precision at temporal IoU thresholds
 
 Recall@k — Top-k retrieval accuracy
+
+📚 Citation
+
+This repo adapts from the official Moment-DETR implementation.
+
+If you use this repo, please cite the original paper:
+```bibtext
+@inproceedings{momentdetr2021,
+  title={End-to-End Video Instance Segmentation with Transformers},
+  author={Wang, Yuqing and Xu, Zhaoliang and Wang, Xinlong and Li, Chun-Guang and Yao, Yong-Qiang and Li, Yue-Meng and Meng, Gaofeng},
+  booktitle={CVPR},
+  year={2021}
+}
+```
