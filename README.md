@@ -1,130 +1,155 @@
 🎯 Moment-DETR for Custom Datasets
+Modular Transformer-Based Temporal Video Grounding Pipeline
 
-A clean and streamlined implementation of Moment-DETR for language-based temporal video grounding on custom datasets.
-The task: given a natural language query, the model predicts the [start, end] timestamps in a video where the described event occurs.
+A clean, production-ready implementation of Moment-DETR for language-based temporal video grounding on custom datasets.
 
-This repo refactors the official Moment-DETR into a modular, easy-to-use pipeline, making it simple to adapt for new datasets.
+Given a natural language query, the model predicts the [start, end] timestamps in a video where the described event occurs.
+
+This repository refactors the original Moment-DETR implementation into a modular, reproducible, and extensible pipeline, making it easy to train and evaluate on new datasets.
+
+📌 Problem Overview
+
+Task: Temporal Video Grounding
+Input: Video + Natural Language Query
+Output: Predicted temporal segment [t_start, t_end]
+
+Example:
+
+Query: “The surgeon inserts the endoscope.”
+Model Output: [12.4s, 18.7s]
+
+🏗 Architecture & Pipeline
+
+The training workflow is split into four independent stages:
+
+Preprocessing → Feature Extraction → Training → Evaluation
+
+
+Each stage is handled by a dedicated script:
+
+Stage	Script	Description
+📑 Preprocessing	run_preprocessing.py	Converts CSV annotations → JSONL
+🖼 Feature Extraction	run_feature_extraction.py	Extracts ResNet-50 visual features
+🧠 Training	run_training.py	Distributed training with Moment-DETR
+📊 Evaluation	run_evaluation.py	Computes mAP@tIoU & Recall@k
+
+This modular design allows independent execution of each stage for flexible experimentation.
 
 🚀 Key Features
 
-🔄 End-to-end pipeline (Preprocess → Feature Extraction → Training → Evaluation)
+✅ End-to-end temporal grounding pipeline
 
-🖼️ ResNet-50 feature extractor for efficient training
+✅ Modular and easily extensible design
 
-⚡ Multi-GPU support with torch.distributed
+✅ ResNet-50 feature backbone (efficient + stable)
 
-📊 Standard metrics: mAP@tIoU, Recall@k
+✅ Multi-GPU distributed training (torch.distributed)
 
-🛠️ Plug-and-play configs for quick dataset integration
+✅ Standard evaluation metrics (mAP@tIoU, Recall@k)
 
-📌 Overview & Pipeline
+✅ Plug-and-play dataset configuration
 
-<img width="300" height="400" alt="ChatGPT Image Aug 29, 2025, 11_25_38 PM" src="https://github.com/user-attachments/assets/3ea1e7a2-8956-4f37-937c-e4a649fad517" />
+⚙️ Installation
 
-The workflow consists of four stages, each handled by a dedicated script:
+We recommend using a dedicated Conda environment.
 
-graph TD;
-    A[📑 Preprocessing <br> run_preprocessing.py] --> B[🖼️ Feature Extraction <br> run_feature_extraction.py];
-    B --> C[🧠 Training <br> run_training.py];
-    C --> D[📊 Evaluation <br> run_evaluation.py];
-
-
-👉 This modular design means you can preprocess, extract features, train, and evaluate independently.
-
-⚙️ Setup & Installation
-
-We recommend a dedicated Conda environment.
-
-# 1. Clone the repository
+# Clone repository
 git clone https://github.com/yourname/moment-detr-custom.git
 cd moment_detr_baseline
 
-# 2. Create and activate environment
-conda create -n detr python=3.9 -y
-conda activate detr
+# Create environment
+conda create -n momentdetr python=3.9 -y
+conda activate momentdetr
 
-# 3. Install PyTorch (adjust CUDA version as needed)
+# Install PyTorch (adjust CUDA version if needed)
 pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu118
 
-# 4. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-🛠️ Usage: Step-by-Step
-🔧 Step 0: Data Configuration
+📂 Dataset Format
 
-Define dataset paths in your config file.
+Annotations should be provided as a CSV file:
 
-Update run_preprocessing.py and run_feature_extraction.py with either:
+video_id,text,start_frame,end_frame
 
-sys.path.append(...) → config file, OR
 
-Replace with direct paths (proj_config.TRAIN_TRIPLETS_CSV_PATH, etc.)
+Example:
 
-👉 Annotation CSV format:
+video_001,"person opens door",120,240
 
-video_id	text	start_frame	end_frame
-📑 Step 1: Preprocess Annotations
-
-Convert CSV annotations → JSONL format.
-
+🛠 Usage
+1️⃣ Preprocess Annotations
 python run_preprocessing.py
 
 
-✅ Outputs: train.jsonl, val.jsonl, test.jsonl → preprocessed_data/
+Outputs:
 
-🖼️ Step 2: Extract Visual Features
+preprocessed_data/
+  ├── train.jsonl
+  ├── val.jsonl
+  └── test.jsonl
 
-Extract features using ResNet-50.
-
+2️⃣ Extract Visual Features
 python run_feature_extraction.py
 
 
-Resumable (skips completed videos)
+Uses ResNet-50 backbone
 
-Saves features → extracted_features_resnet50/
+Automatically skips processed videos
 
-🧠 Step 3: Train the Model
+Saves to:
 
-Train with multi-GPU support.
+extracted_features_resnet50/
 
-python -m torch.distributed.launch --nproc_per_node=2 --master_port 29501 run_training.py
-
-
-Checkpoints saved → checkpoints/
-
-Customize GPUs via nproc_per_node
-
-📊 Step 4: Evaluate the Model
-
-Evaluate trained checkpoint.
-
-python run_evaluation.py --resume /path/to/checkpoints/run_name/best_checkpoint.ckpt
+3️⃣ Train Model (Multi-GPU)
+python -m torch.distributed.launch \
+  --nproc_per_node=2 \
+  --master_port 29501 \
+  run_training.py
 
 
-Results printed + saved in logs
+Checkpoints saved in:
 
-Metrics: mAP@tIoU, Recall@k
+checkpoints/
 
-🖼️ Example Results
+4️⃣ Evaluate Model
+python run_evaluation.py \
+  --resume /path/to/best_checkpoint.ckpt
 
-Here you can showcase results with GIFs or sample visualizations. For example:
 
-Pipeline GIF (data → features → training → predictions)
+Metrics:
 
-Sample grounding outputs: query + predicted [start, end] overlayed on video timeline
+mAP@tIoU
 
-![Pipeline Overview](docs/pipeline.gif)  
-![Sample Result](docs/result_example.png)  
+Recall@k
 
-📚 Citation
+Results are logged and printed to console.
 
-This code adapts from the original Moment-DETR:
+📊 Evaluation Metrics
 
-End-to-End Video Instance Segmentation with Transformers
-Yuqing Wang, Zhaoliang Xu, Xinlong Wang, Chun-Guang Li, Yong-Qiang Yao, Yue-Meng Li, Gaofeng Meng
-CVPR 2021
+mAP@tIoU – Mean Average Precision at temporal IoU thresholds
 
-If you use this repo, please cite the paper.
+Recall@k – Top-k retrieval accuracy
+
+These follow standard temporal grounding benchmarks.
+
+🖼 Example Outputs
+
+(Optional — add visual results if available)
+
+Temporal segment predictions overlaid on video timeline
+
+Query-conditioned grounding examples
+
+📚 Acknowledgment
+
+This repository builds upon:
+
+Moment-DETR: End-to-End Video Instance Segmentation with Transformers
+Wang et al., CVPR 2021
+
+If you use this implementation, please cite the original paper.
 
 @inproceedings{momentdetr2021,
   title={End-to-End Video Instance Segmentation with Transformers},
@@ -132,14 +157,3 @@ If you use this repo, please cite the paper.
   booktitle={CVPR},
   year={2021}
 }
-
-
-✨ To-Do / Extensions
-
- Add support for more backbones (e.g., Swin Transformer)
-
- Provide pretrained weights on benchmark datasets
-
- Add demo notebooks for quick inference
-
-🔥 With this repo, you can train Moment-DETR on any dataset with just a CSV file of annotations and raw videos.
