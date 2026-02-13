@@ -137,7 +137,8 @@ Evaluate a trained checkpoint:
 python run_evaluation.py \
   --resume /path/to/checkpoints/run_name/best_checkpoint.ckpt
 ```
-
+<p align="center"> <img width="850" alt="Temporal Grounding"
+src="docs/timeline.png" /> </p>                     
 Results are printed and logged
 
 Metrics include mAP@tIoU and Recall@k
