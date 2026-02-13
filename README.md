@@ -72,7 +72,7 @@ pip install torch torchvision --extra-index-url https://download.pytorch.org/whl
 pip install -r requirements.txt
 
 ```
-📂 Dataset Format
+## 📂 Dataset Format
 
 Annotations should be provided as a CSV file:
 ```bash
@@ -101,7 +101,7 @@ preprocessed_data/
   ├── val.jsonl
   └── test.jsonl
 ```
-Step 2: Extract Visual Features
+## Step 2: Extract Visual Features
 
 Extract visual features using ResNet-50.
 ```bash
@@ -114,7 +114,7 @@ Saves features to:
 ```text
 extracted_features_resnet50/
 ```
-Step 3: Train the Model (Multi-GPU)
+## Step 3: Train the Model (Multi-GPU)
 
 Train using distributed multi-GPU support:
 ```bash
@@ -133,7 +133,7 @@ checkpoints/
 </p>
 Adjust --nproc_per_node based on the number of GPUs available.
 
-Step 4: Evaluate the Model
+## Step 4: Evaluate the Model
 
 Evaluate a trained checkpoint:
 ```bash
@@ -146,7 +146,7 @@ Results are printed and logged
 
 Metrics include mAP@tIoU and Recall@k
 
-📊 Evaluation Metrics
+## 📊 Evaluation Metrics
 
 mAP@tIoU — Mean Average Precision at temporal IoU thresholds
 
@@ -155,7 +155,7 @@ Recall@k — Top-k retrieval accuracy
   <img width="850" alt="mAP Curve" src="doc/map_curve.png" />
 </p>
 
-📚 Citation
+## 📚 Citation
 
 This repo adapts from the official Moment-DETR implementation.
 
