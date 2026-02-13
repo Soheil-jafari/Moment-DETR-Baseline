@@ -128,6 +128,9 @@ Checkpoints saved to:
 ```text
 checkpoints/
 ```
+<p align="center">
+  <img width="850" alt="Loss Curve" src="doc/loss_curve.png" />
+</p>
 Adjust --nproc_per_node based on the number of GPUs available.
 
 Step 4: Evaluate the Model
@@ -148,6 +151,9 @@ Metrics include mAP@tIoU and Recall@k
 mAP@tIoU — Mean Average Precision at temporal IoU thresholds
 
 Recall@k — Top-k retrieval accuracy
+<p align="center">
+  <img width="850" alt="mAP Curve" src="doc/map_curve.png" />
+</p>
 
 📚 Citation
 
